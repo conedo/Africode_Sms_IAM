@@ -1,0 +1,46 @@
+{% extends "security/base.html" %}
+{% from "security/_macros.html" import render_field_with_errors, render_field, render_form_errors, render_field_errors %}
+
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+      <div class="col-md-6 col-lg-4">
+        {% include "security/_messages.html" %}
+        <h1 class="text-center mb-4">{{ _fsdomain('Register') }}</h1>
+        <form action="{{ url_for_security('register') }}" method="post" name="register_user_form" class="needs-validation" novalidate>
+          {{ register_user_form.hidden_tag() }}
+          {{ render_form_errors(register_user_form) }}
+          
+          <div class="mb-3">
+            {{ render_field_with_errors(register_user_form.email, class_="form-control", placeholder="Enter your email") }}
+          </div>
+
+          {% if config["SECURITY_USERNAME_ENABLE"] %}
+          <div class="mb-3">
+            {{ render_field_with_errors(register_user_form.username, class_="form-control", placeholder="Enter your username") }}
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            {{ render_field_with_errors(register_user_form.password, class_="form-control", placeholder="Enter your password") }}
+          </div>
+
+          {% if register_user_form.password_confirm %}
+          <div class="mb-3">
+            {{ render_field_with_errors(register_user_form.password_confirm, class_="form-control", placeholder="Confirm your password") }}
+          </div>
+          {% endif %}
+
+          {{ render_field_errors(register_user_form.csrf_token) }}
+
+          <div class="d-grid">
+            {{ render_field(register_user_form.submit, class_="btn btn-primary btn-block") }}
+          </div>
+        </form>
+        <div class="text-end mb-3"></div>
+        <a href="{{ url_for_security('change_email') }}">{{ _fsdomain("Change Registered Email") }}</a>
+      </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

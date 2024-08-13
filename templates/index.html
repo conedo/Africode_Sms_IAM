@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Home | SMS{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4 text-center text-primary">Welcome to the School Management System</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Quick Stats</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">Total Courses: <strong>{{ courses_count }}</strong></li>
+                        <li class="list-group-item">Total Students: <strong>{{ students_count }}</strong></li>
+                        <li class="list-group-item">Total Teachers: <strong>{{ teachers_count }}</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-info">Your Information</h5>
+                    <p><strong>Email:</strong> {{ current_user.email }}</p>
+                    <p><strong>Roles:</strong> 
+                        {% for role in current_user.roles %}
+                            <span class="badge bg-secondary">{{ role.name }}</span>{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                    {% if current_user.has_role('Student') %}
+                        <p><strong>Enrolled Courses:</strong> {{ current_user.enrollments|length }}</p>
+                    {% elif current_user.has_role('Teacher') %}
+                        <p><strong>Courses Teaching:</strong> {{ current_user.courses_taught|length }}</p>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for_security('logout') }}" class="text-decoration-none text-center text-danger d-block mt-3">{{ _fsdomain("Sign out") }}</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="mb-3 text-center text-warning">Quick Actions</h2>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="{{ url_for('courses') }}" class="btn btn-primary">View Courses</a>
+                {% if current_user.has_role('Admin') %}
+                    <a href="{{ url_for('create_course') }}" class="btn btn-success">Create New Course</a>
+                    <a href="{{ url_for('register_student') }}" class="btn btn-info">Register Student</a>
+                    {% endif %}
+                {% if current_user.has_role('Student') %}
+                    <a href="#" class="btn btn-info">View My Grades</a>
+                {% endif %}
+                {% if current_user.has_role('Teacher') %}
+                    <a href="#" class="btn btn-warning">Manage My Courses</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
