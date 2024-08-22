@@ -48,13 +48,14 @@
                 <a href="{{ url_for('courses') }}" class="btn btn-primary">View Courses</a>
                 {% if current_user.has_role('Admin') %}
                     <a href="{{ url_for('create_course') }}" class="btn btn-success">Create New Course</a>
-                    <a href="{{ url_for('register_student') }}" class="btn btn-info">Register Student</a>
-                    {% endif %}
+                    <a href="{{ url_for('register_user') }}" class="btn btn-info">Register Student</a>
+                {% endif %}
                 {% if current_user.has_role('Student') %}
-                    <a href="#" class="btn btn-info">View My Grades</a>
+                    <a href="{{ url_for('view_grades') }}" class="btn btn-primary">View My Grades</a>
                 {% endif %}
                 {% if current_user.has_role('Teacher') %}
-                    <a href="#" class="btn btn-warning">Manage My Courses</a>
+                    <a href="{{ url_for('manage_courses') }}" class="btn btn-warning">Manage My Courses</a>
+                    <a href="{{ url_for('manage_students') }}" class="btn btn-info">Manage Students</a>
                 {% endif %}
             </div>
         </div>

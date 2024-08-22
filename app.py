@@ -3,6 +3,7 @@ from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
 from flask_security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMixin, login_required, current_user, roles_required, hash_password
 from flask_security.forms import RegisterForm
+from flask_migrate import Migrate
 from flask_mailman import Mail
 import config
 
@@ -10,6 +11,7 @@ app = Flask(__name__)
 Bootstrap5(app)
 app.config.from_object(config)
 db = SQLAlchemy(app)
+migrate = Migrate(app,db)
 
 roles_users = db.Table('roles_users',
     db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
@@ -59,7 +61,11 @@ def index():
     courses_count = Course.query.count()
     students_count = User.query.join(User.roles).filter(Role.name == 'Student').count()
     teachers_count = User.query.join(User.roles).filter(Role.name == 'Teacher').count()
-    return render_template('index.html',courses_count = courses_count, students_count = students_count, teachers_count = teachers_count)
+    
+    enrollment = None
+    if current_user.has_role('Student'):
+        enrollment = Enrollment.query.filter_by(student_id=current_user.id).first()
+    return render_template('index.html',courses_count = courses_count, students_count = students_count, teachers_count = teachers_count,enrollment = enrollment)
 
 @app.route('/courses')
 @login_required
@@ -67,7 +73,7 @@ def courses():
     if current_user.has_role('Admin') or current_user.has_role('Teacher'):
         courses = Course.query.all()
     else:
-        courses = [enrollment.course for enrollment in current_user.enrollments]
+        courses = Course.query.all()
         # changed something
 
     return render_template('courses.html', courses=courses)  # Fixed: Moved return outside the else block
@@ -115,26 +121,93 @@ def grade(enrollment_id):
     if enrollment.course.teacher_id != current_user.id:
         flash('You are not a teacher of this course.')
         return redirect(url_for('courses'))
-    if request.method == 'POST':  # Fixed: Check if POST before updating grade
+
+    if request.method == 'POST':
         grade = request.form.get('grade')
         enrollment.grade = float(grade)
         db.session.commit()
         flash('Grade updated successfully!')
-    return redirect(url_for('course_details', course_id=enrollment.course_id))
+        return redirect(url_for('course_details', course_id=enrollment.course_id))
 
-@app.route('/register_student', methods=['GET', 'POST'])
+    # This renders the grade.html template when accessed via a GET request
+    # return render_template('grade.html', enrollment=enrollment)
+
+@app.route('/view_grades')
+@roles_required('Student')  # Only students should access this page
+@login_required
+def view_grades():
+    enrollments = Enrollment.query.filter_by(student_id=current_user.id).all()
+    return render_template('view_grades.html', enrollments=enrollments)
+
+@app.route('/manage_students')
+@roles_required('Teacher')
+def manage_students():
+    # Fetch the courses taught by the current teacher
+    courses = Course.query.filter_by(teacher_id=current_user.id).all()
+    return render_template('manage_students.html', courses=courses)
+
+@app.route('/grade_course/<int:course_id>', methods=['GET', 'POST'])
+@roles_required('Teacher')
+def grade_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    
+    # Check if the current user is the teacher of this course
+    if course.teacher_id != current_user.id:
+        flash('You are not the teacher of this course')
+        return redirect(url_for('manage_students'))
+    
+    # Fetch all enrollments for this course
+    enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+    
+    return render_template('grade_course.html', course=course, enrollments=enrollments)
+
+@app.route('/manage_courses')
+@roles_required('Teacher')
+@login_required
+def manage_courses():
+    # Fetch the courses taught by the current teacher
+    courses = Course.query.filter_by(teacher_id=current_user.id).all()
+    return render_template('manage_courses.html', courses=courses)
+
+
+@app.route('/register_user', methods=['GET', 'POST'])
 @roles_required('Admin')
-def register_student():
-    form = RegisterForm()  # Use Flask-Security's built-in registration form
-    if form.validate_on_submit():
-        email = form.email.data
-        password = form.password.data
-        hashed_password = hash_password(password)
-        user = user_datastore.create_user(email=email, password=hashed_password, roles=['Student'])
-        db.session.commit()
-        flash('Student registered successfully!')
+def register_user():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role_name = request.form.get('role')
+
+        if User.query.filter_by(email=email).first():
+            flash('Email already registered!')
+        else:
+            role = user_datastore.find_role(role_name)
+            hashed_password = hash_password(password)
+            user_datastore.create_user(email=email, password=hashed_password, roles=[role])
+            db.session.commit()
+            flash(f'{role_name} registered successfully!')
         return redirect(url_for('index'))
-    return render_template('register_student.html', form=form)
+
+    return render_template('register_user.html')
+
+
+
+
+@app.route('/delete_course/<int:course_id>', methods=['POST'])
+@roles_required('Teacher')
+@login_required
+def delete_course(course_id):
+    course = Course.query.get_or_404(course_id)
+
+    # Ensure the current user is the teacher of the course
+    if course.teacher_id != current_user.id:
+        flash('You do not have permission to delete this course.', 'danger')
+        return redirect(url_for('manage_courses'))
+
+    db.session.delete(course)
+    db.session.commit()
+    flash('Course deleted successfully!', 'success')
+    return redirect(url_for('manage_courses'))
 
 
 if __name__ == '__main__':
@@ -162,4 +235,4 @@ if __name__ == '__main__':
             db.session.commit()
 
 
-    app.run(debug=True)
+    app.run(port=8000 ,debug=True)

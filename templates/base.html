@@ -1,17 +1,74 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        {% block head %}
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        {{ bootstrap.load_css() }}
-        <title>{% block title %} SMS{% endblock %}</title>
-        {% endblock %}
-    </head>
-    <body>
-        {% block content %}{% endblock %}
-        {% block scripts %}
-        {{ bootstrap.load_js() }}
-        {% endblock %}
-    </body>
+<head>
+    {% block head %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {{ bootstrap.load_css() }}
+    <title>{% block title %} SMS{% endblock %}</title>
+    {% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">School Management System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('courses') }}">View Courses</a>
+                    </li>
+
+                    {% if current_user.has_role('Student') %}
+                    <li class="nav-item">
+                        {% if course %}
+                            <a class="nav-link" href="{{ url_for('enroll', course_id=course.id) }}">Enroll in Course</a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        {% if enrollment %}
+                            <!-- <a class="nav-link" href="{{ url_for('grade', enrollment_id=enrollment.id) }}">View Grades</a> -->
+                        {% endif %}
+                    </li>
+                    {% endif %}
+
+                    {% if current_user.has_role('Teacher') %}
+                    <li class="nav-item">
+                        <!-- <a class="nav-link" href="#">Manage Courses</a> -->
+                    </li>
+                    {% endif %}
+
+                    {% if current_user.has_role('Admin') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('create_course') }}">Create Course</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register_user') }}">Register Student</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for_security('logout') }}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+    {% block scripts %}
+    {{ bootstrap.load_js() }}
+    {% endblock %}
+    
+    {% if request.endpoint != 'index' %}
+    <div class="container mt-3">
+        <button class="btn btn-secondary" onclick="window.history.back();">Back</button>
+    </div>
+    {% endif %}
+</body>
 </html>
